@@ -30,8 +30,12 @@ import com.example.testkeystore.databinding.ActivityMainBinding;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 
 public class MainActivity extends AppCompatActivity {
@@ -57,28 +61,43 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 String antani = "";
                 try {
-                    KeyGenerator keyGenerator = KeyGenerator.getInstance(
-                            KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+                    // AES
+                    // KeyGenerator keyGenerator = KeyGenerator.getInstance(
+                    //         KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
 
-                    // Set the key alias (a unique name for the key)
+                    // // Set the key alias (a unique name for the key)
                     String keyAlias = "MySecretKey";
 
-                    // Create a KeyGenParameterSpec for AES
-                    KeyGenParameterSpec keyGenParameterSpec = new KeyGenParameterSpec.Builder(
-                            keyAlias,
-                            KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                            .setBlockModes(KeyProperties.BLOCK_MODE_CBC) // Or other block mode
-                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7) // Or other padding
-                            // .setIsStrongBoxBacked(true)
-                            .build();
+                    // // Create a KeyGenParameterSpec for AES
+                    // KeyGenParameterSpec keyGenParameterSpec = new KeyGenParameterSpec.Builder(
+                    //         keyAlias,
+                    //         KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                    //         .setBlockModes(KeyProperties.BLOCK_MODE_CBC) // Or other block mode
+                    //         .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7) // Or other padding
+                    //         // .setIsStrongBoxBacked(true)
+                    //         .build();
 
-                    keyGenerator.init(keyGenParameterSpec);
-                    SecretKey key = keyGenerator.generateKey();
+                    // keyGenerator.init(keyGenParameterSpec);
+                    // SecretKey key = keyGenerator.generateKey();
 
-                    SecretKeyFactory factory = SecretKeyFactory.getInstance(key.getAlgorithm(), "AndroidKeyStore");
+                    // RSA
+                    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(
+                            KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
+                    keyPairGenerator.initialize(
+                            new KeyGenParameterSpec.Builder(
+                                    keyAlias,
+                                    KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
+                                    .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+                                    .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+                                    .build());
+                    KeyPair keyPair = keyPairGenerator.generateKeyPair();
+                    // !! stiamo leggendo la chiave privata??
+                    PrivateKey key = keyPair.getPrivate();
+
+                    KeyFactory factory = KeyFactory.getInstance(key.getAlgorithm(), "AndroidKeyStore");
                     KeyInfo keyInfo;
                     try {
-                        keyInfo = (KeyInfo) factory.getKeySpec(key, KeyInfo.class);
+                        keyInfo = factory.getKeySpec(key, KeyInfo.class);
                         switch (keyInfo.getSecurityLevel()) {
                             case KeyProperties.SECURITY_LEVEL_SOFTWARE:
                                 Log.w("testkeystore", "+++ SECURITY_LEVEL_SOFTWARE");
@@ -113,6 +132,9 @@ public class MainActivity extends AppCompatActivity {
                 Snackbar.make(view, "Security level " + antani, Snackbar.LENGTH_LONG)
                         .setAnchorView(R.id.fab)
                         .setAction("Action", null).show();
+
+                // Per generare un CSR vedi
+                // https://stackoverflow.com/questions/37850134/what-is-the-certificate-enrollment-process
             }
         });
     }
